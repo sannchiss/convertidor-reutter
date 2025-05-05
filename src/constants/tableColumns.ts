@@ -1,0 +1,53 @@
+export const TableColumns = [
+  { name: 'tdc_fact', required: true, label: 'tdc_fact', align: 'left', field: 'tdc_fact' },
+  { name: 'tdc_gd', required: true, label: 'tdc_gd', align: 'left', field: 'tdc_gd' },
+  {
+    name: 'nombre_cliente',
+    required: true,
+    label: 'Cédula',
+    align: 'left',
+    field: 'nombre_cliente',
+  },
+  { name: 'referencia', label: 'referencia', align: 'left', field: 'referencia' },
+  { name: 'producto', label: 'producto', align: 'left', field: 'producto' },
+  { name: 'observaciones1', label: 'observaciones1', align: 'left', field: 'observaciones1' },
+  {
+    name: 'poblacion_consignatario',
+    label: 'poblacion_consignatario',
+    align: 'left',
+    field: 'poblacion_consignatario',
+  },
+  {
+    name: 'nombre_consignatario',
+    label: 'nombre_consignatario',
+    align: 'left',
+    field: 'nombre_consignatario',
+  },
+  {
+    name: 'direccion_consignatario',
+    label: 'direccion_consignatario',
+    align: 'left',
+    field: 'direccion_consignatario',
+  },
+  {
+    name: 'contacto_consignatario',
+    label: 'contacto_consignatario',
+    align: 'left',
+    field: 'contacto_consignatario',
+  },
+  {
+    name: 'telefono_consignatario',
+    label: 'telefono_consignatario',
+    align: 'left',
+    field: 'telefono_consignatario',
+  },
+  {
+    name: 'nif_consignatario',
+    label: 'nif_consignatario',
+    align: 'left',
+    field: 'nif_consignatario',
+  },
+  { name: 'bultos', label: 'bultos', align: 'left', field: 'bultos' },
+  { name: 'kilos', label: 'kilos', align: 'left', field: 'kilos' },
+  { name: 'volumen', label: 'volumen', align: 'left', field: 'volumen' },
+] as const; // Use 'as const' to make it a readonly tuple
