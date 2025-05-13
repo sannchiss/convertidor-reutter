@@ -13,7 +13,11 @@
     "dev": "quasar dev",
     "build": "quasar build",
     "postinstall": "quasar prepare",
-    "backend": "json-server --watch data/db-city-cp-chile.json"
+    "backend": "json-server --watch data/db-city-cp-chile.json",
+    "electron:build": "quasar build -m electron -T all",
+    "electron:build:win": "quasar build -m electron -T win32,win64",
+    "electron:build:mac": "quasar build -m electron -T darwin",
+    "electron:build:linux": "quasar build -m electron -T linux"
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",
@@ -37,6 +41,7 @@
     "@vue/eslint-config-typescript": "^14.4.0",
     "autoprefixer": "^10.4.2",
     "electron": "^36.1.0",
+    "electron-builder": "^24.13.3",
     "eslint": "^9.14.0",
     "eslint-plugin-vue": "^9.30.0",
     "globals": "^15.12.0",
