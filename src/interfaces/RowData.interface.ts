@@ -1,9 +1,9 @@
 export interface RowData {
-  tdc_fact: string;
-  tdc_gd: string;
+  doc_retorno: string;
+  tipo_documento: string;
+  tipo_servicio: string;
   nombre_cliente: string;
   referencia: string | number;
-  producto: string;
   observaciones1: string;
   poblacion_consignatario: string;
   nombre_consignatario: string;
@@ -14,6 +14,7 @@ export interface RowData {
   bultos: string | number;
   kilos: string | number;
   volumen: string | number;
+  valor_seguro: string | number;
 }
 
 export interface RowDataShipFast {
@@ -32,8 +33,8 @@ export interface RowDataShipFast {
   lenght: string;
   width: string;
   height: string;
-  weight: string;
-  carriage: string;
+  weight: string | number;
+  carriage: string | number;
   service: string;
   packaging: string;
   description: string;

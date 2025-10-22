@@ -1,0 +1,35 @@
+.my-sticky-virtscroll-table {
+  /* 1. Definir la altura/máxima altura de la tabla contenedora */
+  height: 410px;
+
+  /* 2. Estilos para el encabezado, pie y primera fila (para el color de fondo) */
+  .q-table__top,
+  .q-table__bottom,
+  thead tr:first-child th {
+    /* bg color is important for th; just specify one */
+    background-color: #7f09a32c; // Quasar Primary Blue
+  }
+
+  /* 3. Hacer que todas las celdas de encabezado sean pegajosas */
+  thead tr th {
+    position: sticky;
+    z-index: 1;
+  }
+
+  /* 4. Asegurar que la última fila de encabezado (ej. filtros/loader) se pegue debajo de la primera */
+  thead tr:last-child th {
+    /* Asumiendo que la primera fila tiene 48px de altura */
+    top: 48px;
+  }
+
+  /* 5. Asegurar que la primera fila de encabezado se pegue a la parte superior */
+  thead tr:first-child th {
+    top: 0;
+  }
+
+  /* 6. Evitar que el contenido del cuerpo de la tabla se oculte detrás del encabezado pegajoso al hacer scroll */
+  tbody {
+    /* Debe coincidir con la altura total de las filas de encabezado pegajosas (ej. 48px) */
+    scroll-margin-top: 48px;
+  }
+}

@@ -35,14 +35,15 @@
             label="Generar Excel"
             @click="descargarExcel"
             icon="file_download"
-            color="secondary"
+            color="purple"
             class="q-ml-xs"
           />
-          <q-btn label="Limpiar" @click="clearData" icon="clear" class="q-ml-xs" />
+          <q-btn label="Limpiar" @click="clearData" icon="clear" color="red" class="q-ml-xs" />
         </div>
 
         <q-table
           v-if="rows.length > 0"
+          class="my-sticky-virtscroll-table"
           title="Datos Pegados"
           :columns="columns"
           separator="cell"
@@ -63,13 +64,15 @@
 import { defineComponent, ref } from 'vue';
 import type { QTableColumn } from 'quasar';
 import { Notify } from 'quasar';
-// Clipboard functionality is available via $q.clipboard, no need to import Clipboard.
 
 //import { useDataExcelStore } from 'src/stores/dataExcel/index'; // Asegúrate de que la ruta sea correcta
 import type { RowData, RowDataShipFast } from 'src/interfaces/RowData.interface'; // Asegúrate de que la ruta sea correcta
 import { TableColumns } from 'src/constants/tableColumns'; // Asegúrate de que la ruta sea correcta
 import { getZipCodeByCity } from 'src/utils/getZipCodeByCity';
 import { generarExcelConPestanas } from 'src/utils/exportExcel.utils';
+import { LocStorage } from 'src/localstorage/localStore';
+import allActionEvent from '../../handlers/allActionEvent';
+import type { ConfigurationInterface } from 'src/interfaces/Configuration.interface';
 
 interface DatosExcel {
   [key: string]: (string | number)[][];
@@ -86,10 +89,26 @@ export default defineComponent({
   name: 'PasteGrid',
 
   setup() {
+    const config = ref(<ConfigurationInterface>{});
     const pasteData = ref('');
     const columns = ref<QTableColumn<RowData>[]>([...TableColumns]);
     const rows = ref<RowData[]>([]);
     const flagTable = ref(false);
+
+    const modelReturnDoc = ref<string | null>('FACT');
+    const modelServiceType = ref<string | null>('D2');
+
+    const handlerFunction = allActionEvent();
+
+    const getConfig = () => {
+      const savedConfig = LocStorage.getItem('configuration');
+      if (savedConfig) {
+        // asignar los valores guardados a la configuración actual
+        config.value = savedConfig as ConfigurationInterface;
+      }
+    };
+
+    getConfig();
 
     const pasteToClipboard = () => {
       navigator.clipboard
@@ -131,18 +150,20 @@ export default defineComponent({
         rows.value = [];
 
         const lines = pastedText.trim().split('\n');
+
         if (lines.length > 0) {
           const dataRows = lines.slice(0);
 
           dataRows.map((line: string) => {
             const values = line.split('\t').map((value) => value.trim());
 
+            // Vaciado de datos del formato ShipFast para luego generar el Excel con pestañas ShipFast, MPS y DOCS
             const newRow: RowData = {
-              tdc_fact: '',
-              tdc_gd: '',
+              doc_retorno: '',
+              tipo_documento: '',
+              tipo_servicio: '',
               nombre_cliente: '',
               referencia: '',
-              producto: '',
               observaciones1: '',
               poblacion_consignatario: '',
               nombre_consignatario: '',
@@ -153,6 +174,7 @@ export default defineComponent({
               bultos: '',
               kilos: '',
               volumen: '',
+              valor_seguro: '',
             };
 
             // Asignamos los valores a las columnas correspondientes.
@@ -160,12 +182,14 @@ export default defineComponent({
             // coincide con el orden definido en 'columns'. Si no es así,
             // necesitarás una lógica más robusta para mapear por tdc_fact de columna.
             if (values.length >= columns.value.length) {
+              // de la tabla cambiar el nombre de la columna a la que corresponde el valor
+
               flagTable.value = true;
-              newRow.tdc_fact = values[0] || '';
-              newRow.tdc_gd = values[1] || '';
-              newRow.nombre_cliente = values[2] || '';
-              newRow.referencia = values[3] !== undefined ? values[3] : '';
-              newRow.producto = values[4] !== undefined ? values[4] : '';
+              newRow.doc_retorno = values[0] || '';
+              newRow.tipo_documento = values[1] || '';
+              newRow.tipo_servicio = values[2] || '';
+              newRow.nombre_cliente = values[3] || '';
+              newRow.referencia = values[4] !== undefined ? values[4] : '';
               newRow.observaciones1 = values[5] !== undefined ? values[5] : '';
               newRow.poblacion_consignatario = values[6] !== undefined ? values[6] : '';
               newRow.nombre_consignatario = values[7] !== undefined ? values[7] : '';
@@ -174,8 +198,10 @@ export default defineComponent({
               newRow.telefono_consignatario = values[10] !== undefined ? values[10] : '';
               newRow.nif_consignatario = values[11] !== undefined ? values[11] : '';
               newRow.bultos = values[12] !== undefined ? values[12] : '';
-              newRow.kilos = values[13] !== undefined ? values[13] : '';
-              newRow.volumen = values[14] !== undefined ? values[14] : '';
+              newRow.kilos = parseFloat(String(values[13]).replace(/,/g, '.')).toFixed(2);
+              newRow.volumen = values[14] !== undefined ? values[14] : '0';
+              newRow.valor_seguro = values[15] !== undefined ? values[15] : '0';
+              // newRow.valor_seguro = handlerFunction.formatNumber(String(values[15]));
 
               // si el tamaño de la tabla es mayor a 0, entonces agregar la fila
               rows.value.push(newRow);
@@ -213,6 +239,27 @@ export default defineComponent({
 
     return {
       pasteToClipboard,
+      config,
+      modelReturnDoc,
+      optionsReturnDoc: [
+        { label: 'FACTURA', value: 'FACT' },
+        { label: 'GUIA DE DESPACHO', value: 'GD' },
+        { label: 'CARTA DE PORTE', value: 'CARTA' },
+        { label: 'BOLETA DE ENTREGA', value: 'BOL' },
+        { label: 'FORMULARIO ÚNICO', value: 'FUE' },
+        { label: 'GUIA DE CARGA', value: 'GC' },
+        { label: 'IDENTICKET', value: 'IT' },
+      ],
+      modelServiceType,
+      optionsServiceType: [
+        { label: 'FEDEX PRIORITY EXPRESS D2', value: 'D2' },
+        { label: 'FEDEX PRIORITY D3', value: 'D3' },
+        { label: 'FEDEX ECONOMY SELECT D4', value: 'D4' },
+        { label: 'FEDEX PRIORITY EXPRESS FREIGHT D5', value: 'D5' },
+        { label: 'FEDEX PRIORITY FREIGHT D6', value: 'D6' },
+        { label: 'FEDEX ECONOMY FREIGHT D7', value: 'D7' },
+      ],
+      options: [],
       flagTable,
       visible: ref(true),
       initialPagination: {
@@ -225,14 +272,19 @@ export default defineComponent({
       columns,
       rows,
       handlePaste,
+      handlerFunction,
     };
   },
-
-  methods: {
-    generarLibroExcel() {
-      // Implementar la lógica para generar el libro de Excel aquí
+  watch: {
+    // genera una funcion para el select de retorno de documentos motrar el label
+    modelServiceType(newValue) {
+      return this.optionsServiceType.find((option) => option.value === newValue)?.label;
     },
-
+    modelReturnDoc(newValue) {
+      console.log('Nuevo valor de modelReturnDoc:', newValue);
+    },
+  },
+  methods: {
     async descargarExcel() {
       const newRowShipFast: RowDataShipFast[] = [];
 
@@ -246,6 +298,10 @@ export default defineComponent({
         return;
       }
 
+      this.rows.forEach((row: RowData) => {
+        console.log('Fila actual:', row.tipo_documento);
+      });
+
       const rowsMax = this.rows.length / 300;
       // redondear hacia arriba
       const rowsMaxCeil = Math.ceil(rowsMax);
@@ -256,32 +312,38 @@ export default defineComponent({
 
         await Promise.all(
           rowView.map(async (row: RowData) => {
+            const dimensiones = this.handlerFunction.volumenPorBulto(
+              row.volumen,
+              row.bultos,
+              this.config
+            );
+
             newRowShipFast.push({
               // add max characters to rec
-              rec: row.tdc_fact.slice(0, 20),
+              rec: row.doc_retorno.slice(0, 300),
               company: row.nombre_consignatario.slice(0, 35),
               contact: row.contacto_consignatario.slice(0, 35),
               adr1: row.direccion_consignatario.slice(0, 35),
-              adr2: '',
+              adr2: row.direccion_consignatario.slice(35, 70),
               adr3: '',
               phone: (row.telefono_consignatario == '' || row.telefono_consignatario == '0'
                 ? '56123456789'
                 : row.telefono_consignatario
               ).slice(0, 15),
               city: row.poblacion_consignatario.slice(0, 30),
-              state: 'RM',
+              state: 'CL',
               zipcode: ((await useGetZipCodeByCity(row.poblacion_consignatario)) || '').slice(0, 7),
               country: 'CL',
               package: row.bultos,
-              lenght: '20',
-              width: '20',
-              height: '20',
-              weight: String(row.kilos),
-              carriage: '0',
-              service: 'D2',
+              lenght: dimensiones.largo.toString(),
+              width: dimensiones.ancho.toString(),
+              height: dimensiones.alto.toString(),
+              weight: row.kilos ? row.kilos : '0',
+              carriage: row.valor_seguro ? row.valor_seguro.toString() : '0',
+              service: this.config.modelServiceType?.toString() || 'D2',
               packaging: 'YOUR PACKAGING',
               description: row.observaciones1.slice(0, 35),
-              ref: row.tdc_fact.slice(0, 30),
+              ref: String(row.referencia).slice(0, 35),
               dep: '',
               po: '',
               invoice: '',
@@ -290,7 +352,7 @@ export default defineComponent({
               other1_email: '',
               return: 'RD',
             });
-          }),
+          })
         );
 
         // Crea array tab: MPS dependiendo de la cantidad de bultos en this.rows
@@ -302,13 +364,40 @@ export default defineComponent({
               lenght: row.lenght,
               width: row.width,
               height: row.height,
-              weight: (Number(Number(row.weight).toFixed(2)) / Number(row.package)).toString(),
+              weight: (
+                Number(String(row.weight).replace(',', '.')) / Number(String(row.package))
+              ).toFixed(2),
             });
           }
           return mps;
         });
 
-        // Array tab: DOCS
+        // Llamo a la funcion separarDatosRec para separar los datos de REC y convertirlos en un array list
+        /*   const resultRecDoc = this.separarDatosRec(
+          newRowShipFast.map((row: RowDataShipFast) => row.rec).join('\n'),
+        ); */
+
+        const resultRecDoc = this.handlerFunction.separarDatosRec(
+          newRowShipFast
+            .map(
+              (row: RowDataShipFast) =>
+                `${row.rec}; ${
+                  this.rows.find((r) => r.doc_retorno === row.rec)?.tipo_documento || ' '
+                }`
+            )
+            .join('\n')
+            .split('\n')
+        );
+
+        // asignar el tipo de documento con el doc_retorno
+        /*   newRowShipFast.forEach((row: RowDataShipFast, index: number) => {
+          row.rec = resultRecDoc[index]?.[0] ?? '';
+          row.doc_retorno = resultRecDoc[index]?.[0] ?? '';
+        }); */
+
+        console.time('separarDatosRec');
+        console.log('Llamando a separarDatosRec con los siguientes datos:');
+        console.log('resultRecDoc:', resultRecDoc);
 
         const datosExcel: DatosExcel = {
           SHIP: [
@@ -343,7 +432,8 @@ export default defineComponent({
             ],
 
             ...newRowShipFast.map((row: RowDataShipFast) => [
-              row.rec,
+              // copiar el rec hasta el ; y sino hay ; copiar todo
+              row.rec.indexOf(';') !== -1 ? row.rec.slice(0, row.rec.indexOf(';')) : row.rec || '',
               row.company,
               row.contact,
               row.adr1,
@@ -357,7 +447,9 @@ export default defineComponent({
               row.lenght,
               row.width,
               row.height,
-              (Number(Number(row.weight).toFixed(2)) / Number(row.package)).toFixed(2),
+              (
+                parseFloat(String(row.weight).replace(/,/g, '.')) / Number(String(row.package))
+              ).toFixed(2),
               row.carriage,
               row.service,
               row.packaging,
@@ -384,30 +476,38 @@ export default defineComponent({
                   width: string;
                   height: string;
                   weight: string;
-                }[],
+                }[]
               ) =>
                 // solo 3 decimales en el weight
                 rows.map((row) => [
-                  row.rec,
+                  // copiar el rec hasta el ; y sino hay ; copiar todo
+                  row.rec.indexOf(';') !== -1
+                    ? row.rec.slice(0, row.rec.indexOf(';'))
+                    : row.rec || '',
                   row.lenght,
                   row.width,
                   row.height,
-                  Number(row.weight).toFixed(2),
-                ]),
+                  row.weight,
+                ])
             ),
 
             // con la cantidad de bultos
           ],
           DOCS: [
             ['REC', 'docID', 'docType'],
-            // crear filas dependiendo de la cantidad de bultos en this.rows
-            ...newRowShipFast.map((row: RowDataShipFast) => [row.rec, row.ref, 'FACT']),
+            // recorrer el array resultRecDoc con lengthDoc
+            //...resultRecDoc[0].map((rec, index) => [
+            //   rec ?? '',
+            //   resultRecDoc[1][index] ?? '',
+            //    this.rows[index]?.tipo_documento ?? '',
+            //   ]),
+            ...resultRecDoc.map((doc) => [doc[0] ?? '', doc[1] ?? '', doc[2] ?? '']),
           ],
         };
 
         generarExcelConPestanas(
           datosExcel,
-          `${i + 1}_archivo_${new Date().toISOString().slice(0, 10)}.xls`,
+          `${i + 1}_archivo_${new Date().toISOString().slice(0, 10)}.xls`
         );
 
         // Limpiar el array newRowShipFast para la siguiente iteración
@@ -422,3 +522,7 @@ export default defineComponent({
   },
 });
 </script>
+
+<style lang="scss">
+@import '../../assets/styles/putData-component-styles.scss';
+</style>
